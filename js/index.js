@@ -5,11 +5,37 @@ console.log(document.querySelector('title').textContent);
 /*--------------------------------*/
 
 let listaProductos = [
-{nombre:'Pan',cantidad:2,precio:12.34},
-{nombre:'Carne',cantidad:3,precio:34.44},
-{nombre:'Leche',cantidad:4,precio:22.64},
-{nombre:'Fideos',cantidad:5,precio:42.54}
+    /*{nombre:'Pan',cantidad:2,precio:12.34},
+    {nombre:'Carne',cantidad:3,precio:34.44},
+    {nombre:'Leche',cantidad:4,precio:22.64},
+    {nombre:'Fideos',cantidad:5,precio:42.54}*/
 ];
+
+/*--------------------------------*/
+/*     LOCAL STORAGE              */
+/*--------------------------------*/
+function guardarListaProductosLocal(lista)
+{
+    let prods = JSON.stringify(lista);
+    localStorage.setItem('LISTA',prods);
+}
+
+function leerListaProductosLocal()
+{
+    let prods = localStorage.getItem('LISTA');
+    if(prods)
+    {
+        lista = JSON.parse(prods);
+    }
+
+    return lista;
+}
+
+/*--------------------------------*/
+/*     FUNCIONES GLOBALES         */
+/*--------------------------------*/
+
+
 
 let crearLista = true;
 let ul;
@@ -17,123 +43,152 @@ let ul;
 /*--------------------------------*/
 /*     FUNCIONES GLOBALES         */
 /*--------------------------------*/
-function borrarProd(index)
-{
- 
-     listaProductos.splice(index,1);
-     renderLista();
 
-}
-
-function borrarTodo()
-{
-    listaProductos.splice(0,listaProductos.length);
+function borrarTodo() {
+    listaProductos.splice(0, listaProductos.length);
     renderLista();
 }
 
-function cambiarCantidad(index,el)
-{
+async function cambiarCantidad(id, el) {
+    let index = listaProductos.findIndex(prod => prod.id == id);
     let cantidad = Number(el.value);
     listaProductos[index].cantidad = cantidad;
+
+    //almacenar la lista en el local storage
+    guardarListaProductosLocal(listaProductos);
+
+    let prod = listaProductos[index];
+    try {
+        await api.putProdWeb(id, prod);
+    } catch (err) {
+        console.log('cambiarCantidad', err);
+    }
 }
 
-function cambiarPrecio(index,el)
-{
+async function cambiarPrecio(id, el) {
+    let index = listaProductos.findIndex(prod => prod.id == id);
+
     let precio = Number(el.value);
     listaProductos[index].precio = precio;
+
+     //almacenar la lista en el local storage
+     guardarListaProductosLocal(listaProductos);
+  
+    let prod = listaProductos[index];
+    try {
+        await api.putProdWeb(id, prod);
+    } catch (err) {
+        console.log('cambiarPrecio', err);
+    }
 }
 
-function renderLista()
-{
-    if(crearLista)
-    {
-        ul = document.createElement('ul');
-        ul.classList.add('demo-list-icon','mdl-list','w-100');
+async function borrarProd(index) {
+
+    //listaProductos.splice(index, 1);
+
+    try {
+        await api.deleteProdWeb(index);
+        renderLista();
+
+    } catch (err) {
+        console.log('borrarProd', err)
     }
-  
-    ul.innerHTML = '';
 
-    listaProductos.forEach((prod,index) =>{
-        ul.innerHTML += `<li class="mdl-list__item">
+}
 
-        <!-- icono del producto -->
-        <span class="mdl-list__item-primary-content w-10">
-            <i class="material-icons mdl-list__item-icon">shopping_cart</i>
-        </span>
-    
-        <!-- Nombre del producto -->
-        <span class="mdl-list__item-primary-content w-30">
-           ${prod.nombre}
-        </span>
-    
-        <!-- Entrada de cantidad -->
-        <span class="mdl-list__item-primary-content w-20">
-    
-            <div class="mdl-textfield mdl-js-textfield">
-                <input onchange="cambiarCantidad(${index},this)" class="mdl-textfield__input" type="text" id="cantidad-${index}" value=" ${prod.cantidad}">
-                <label class="mdl-textfield__label" for="cantidad-${index}">Cantidad</label>
-            </div>
-        </span>
-    
-        <!-- Entrada de precio -->
-        <span class="mdl-list__item-primary-content w-20 ml-item">
-    
-            <div class="mdl-textfield mdl-js-textfield">
-                <input onchange="cambiarPrecio(${index},this)" class="mdl-textfield__input" type="text" id="precio-${index}" value="${prod.precio}">
-                <label class="mdl-textfield__label" for="precio-${index}">Text...</label>
-            </div>
-        </span>
-        <!-- Boton de borrado de producto -->
-        <span class="mdl-list__item-primary-content w-20 ml-item">
-    
-            <button onclick="borrarProd(${index})"
-                class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
-                <i class="material-icons">remove_shopping_cart</i>
-            </button>
-        </span>
-    </li>`
+async function renderLista() {
 
-    });
-    if(crearLista)
-    {
-        document.getElementById('lista').appendChild(ul);
-    }
-    else
-    {
+    try {
+        //leemos la plantilla desde el archivos externo
+        let plantilla = await $.ajax({ url: 'plantilla-lista.hbs', method: 'get' });
+        const template = Handlebars.compile(plantilla);
+
+        //obtengo lista de productos de la web
+        listaProductos = await api.getProdWeb();
+
+        //almacena la lista en el localstorage
+        guardarListaProductosLocal(listaProductos);
+
+        $('#lista').html(template({ listaProductos: listaProductos }));
+
+        let ul = $('#contenedor-lista');
         componentHandler.upgradeElements(ul);
     }
-    crearLista = false;
-  
-};
+    catch (err) {
+        console.log('Error en rederLista', err);
+    }
 
-function configurarListeners()
-{
+}
+
+function configurarListeners() {
     /* Ingreso de producto */
-    document.getElementById('btn-entrada-producto').addEventListener('click',() => {
+    document.getElementById('btn-entrada-producto').addEventListener('click', async () => {
         let input = document.getElementById('ingreso-producto');
         let producto = input.value;
-        
-        if(producto)
-        {
-            listaProductos.unshift({nombre:producto,cantidad:1,precio:0});
-            renderLista();
-            input.value = null;
+
+        if (producto) {
+            //listaProductos.unshift({ nombre: producto, cantidad: 1, precio: 0 });
+            try {
+                let prod = { nombre: producto, cantidad: 1, precio: 0 }
+                await api.postProdWeb(prod);
+                renderLista();
+                input.value = null;
+            } catch (err) {
+                console.log('entrada producto', err);
+            }
         }
     });
 
-    document.getElementById('btn-borrar-productos').addEventListener('click',() => {
-         
-        if(confirm('confirma borrar todo?'))
-        {
-            listaProductos = [];
-            renderLista();
+    document.getElementById('btn-borrar-productos').addEventListener('click', () => {
+
+        if (listaProductos.length) {
+            var dialog = $('dialog')[0];
+            dialog.showModal();
         }
     });
 }
 
-function start(){
+function registrarServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            this.navigator.serviceWorker.register("/sw.js").then(reg => {
+                console.log('El service worker se registro correctamente', reg);
+            }).catch(err => {
+                console.warn('Error al registrar el service worker', err);
+            })
+        })
+    }
+    else {
+        console.error('serviceWorker no esta disponible en el navegador');
+    }
+}
 
+function iniDialog() {
+    var dialog = $('dialog')[0];
+    if (!dialog.showModal) {
+        dialog.Polyfill.registerDialog(dialog);
+    }
+
+    $('.cancelar').click(() => {
+        dialog.close();
+    })
+
+    $('.aceptar').click(async () => {
+        try {
+            await api.deleteAllProdWeb();
+            renderLista();
+            dialog.close();
+        } catch (err) {
+            console.log('borrar todo', err);
+        }
+    });
+}
+
+function start() {
+
+    registrarServiceWorker();
     configurarListeners();
+    iniDialog();
     renderLista();
 }
 

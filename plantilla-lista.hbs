@@ -1,0 +1,45 @@
+<ul id="contenedor-lista" class="demo-list-icon mdl-list w-100">
+    
+    {{#listaProductos}}  
+    <li class="mdl-list__item">
+
+        <!-- icono del producto -->
+        <span class="mdl-list__item-primary-content w-10">
+            <i class="material-icons mdl-list__item-icon">shopping_cart</i>
+        </span>
+
+        <!-- Nombre del producto -->
+        <span class="mdl-list__item-primary-content w-30">
+            {{nombre}}
+        </span>
+
+        <!-- Entrada de cantidad -->
+        <span class="mdl-list__item-primary-content w-20">
+
+            <div class="mdl-textfield mdl-js-textfield">
+                <input onchange="cambiarCantidad({{id}},this)" class="mdl-textfield__input" type="text"
+                    id="cantidad-{{id}}" value="{{cantidad}}">
+                <label class="mdl-textfield__label" for="cantidad-{{id}}">Cantidad</label>
+            </div>
+        </span>
+
+        <!-- Entrada de precio -->
+        <span class="mdl-list__item-primary-content w-20 ml-item">
+
+            <div class="mdl-textfield mdl-js-textfield">
+                <input onchange="cambiarPrecio({{id}},this)" class="mdl-textfield__input" type="text"
+                    id="precio-{{id}}" value="{{precio}}">
+                <label class="mdl-textfield__label" for="precio-{{id}}">Text...</label>
+            </div>
+        </span>
+        <!-- Boton de borrado de producto -->
+        <span class="mdl-list__item-primary-content w-20 ml-item">
+
+            <button onclick="borrarProd({{id}})"
+                class="mdl-button mdl-js-button mdl-button--fab mdl-js-ripple-effect mdl-button--colored">
+                <i class="material-icons">remove_shopping_cart</i>
+            </button>
+        </span>
+    </li>
+    {{/listaProductos}}
+</ul>

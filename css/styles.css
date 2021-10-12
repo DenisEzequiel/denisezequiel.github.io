@@ -23,3 +23,9 @@ justify-content:  space-around;
 align-items: center;
 padding: 20px;
 }
+
+progress{
+    width: 100%;
+    height: 20px;
+    display: none;
+}
