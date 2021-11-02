@@ -10,7 +10,9 @@ async function getProdWeb() {
         let prods = await $.ajax({ url, method: 'get' });
         return prods;
     } catch (error) {
-        console.log(error);
+        console.log('Error getProdWeb ',error);
+        let prods = leerListaProductosLocal(listaProductos);
+        return prods;
     }
 }
 

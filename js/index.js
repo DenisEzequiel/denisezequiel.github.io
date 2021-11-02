@@ -14,17 +14,14 @@ let listaProductos = [
 /*--------------------------------*/
 /*     LOCAL STORAGE              */
 /*--------------------------------*/
-function guardarListaProductosLocal(lista)
-{
+function guardarListaProductosLocal(lista) {
     let prods = JSON.stringify(lista);
-    localStorage.setItem('LISTA',prods);
+    localStorage.setItem('LISTA', prods);
 }
 
-function leerListaProductosLocal()
-{
+function leerListaProductosLocal(lista) {
     let prods = localStorage.getItem('LISTA');
-    if(prods)
-    {
+    if (prods) {
         lista = JSON.parse(prods);
     }
 
@@ -71,9 +68,9 @@ async function cambiarPrecio(id, el) {
     let precio = Number(el.value);
     listaProductos[index].precio = precio;
 
-     //almacenar la lista en el local storage
-     guardarListaProductosLocal(listaProductos);
-  
+    //almacenar la lista en el local storage
+    guardarListaProductosLocal(listaProductos);
+
     let prod = listaProductos[index];
     try {
         await api.putProdWeb(id, prod);
@@ -82,12 +79,15 @@ async function cambiarPrecio(id, el) {
     }
 }
 
-async function borrarProd(index) {
+async function borrarProd(id) {
 
-    //listaProductos.splice(index, 1);
+    let index = listaProductos.findIndex(prod => prod.id == id);
+
+    listaProductos.splice(index, 1);
+    guardarListaProductosLocal(listaProductos);
 
     try {
-        await api.deleteProdWeb(index);
+        await api.deleteProdWeb(id);
         renderLista();
 
     } catch (err) {
@@ -152,7 +152,28 @@ function registrarServiceWorker() {
     if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
             this.navigator.serviceWorker.register("/sw.js").then(reg => {
-                console.log('El service worker se registro correctamente', reg);
+                //console.log('El service worker se registro correctamente', reg);
+                
+                Notification.requestPermission(function(res){
+                    if(res=='granted'){
+                        navigator.serviceWorker.ready(function(reg){
+                            console.log(reg);
+                        })
+                    }
+                })
+                reg.onupdatefound = () => {
+                    const installingWorker = reg.installing;
+                    installingWorker.onstatechange = () => {
+                        console.log('SW -------->', installingWorker.state);
+                        if (installingWorker.state === 'activated' && this.navigator.serviceWorker.controller) {
+                            console.log('REINICIANDO');
+                            setTimeout(() => {
+                                console.log('OK!');
+                                location.reload();
+                            }, 5000);
+                        }
+                    }
+                }
             }).catch(err => {
                 console.warn('Error al registrar el service worker', err);
             })
@@ -184,12 +205,74 @@ function iniDialog() {
     });
 }
 
+function pruebaCaches() {
+    if (window.caches) {
+        /* creo espacios de cache */
+        caches.open('prueba-1');
+        caches.open('prueba-2');
+        caches.open('prueba-3');
+
+        //compruebo si existe o no una cache
+        caches.has('prueba-3').then(rta => console.log(rta));
+
+        //borra una cache
+        caches.delete('prueba-1').then(console.log);
+
+        //listo todos los caches
+        caches.keys().then(console.log);
+
+        //Abro una cache y trabajo con el
+        caches.open('cache-v1.1').then(cache => {
+            console.log('---------------------------');
+            console.log(cache);
+            console.log(caches);
+            console.log('---------------------------');
+            //agrego un elemento a la cache
+            cache.add('index.html');
+
+            cache.addAll(['/index.html', '/css/styles.css']).then(() => {
+                console.log('recursos agregados');
+                cache.delete('/css/styles.css').then(console.log);
+
+                cache.match('/css/styles.css').then(res => {
+                    if (res) {
+                        console.warn('recurso encontrado');
+                        /* Accedo al contenido del recurso */
+                        res.text().then(console.log);
+                    }
+                    else {
+                        console.error('recursos inexistente');
+                    }
+                });
+            });
+
+            //creo o modifico el recurso de la cache
+            cache.put('/index.html', new Response('Hola mundo'));
+            // listar los recursos que tiene la cache
+            cache.keys().then(recursos => console.log('recursos de cache', recursos));
+            cache.keys().then(recursos => {
+                recursos.forEach(recurso => console.log('url', recurso.url));
+            });
+
+            caches.keys().then(nombres => console.log('nombres de cache', nombres))
+
+        });
+
+
+
+    }
+    else {
+        console.log('No soporta caches');
+    }
+}
+
 function start() {
 
     registrarServiceWorker();
     configurarListeners();
     iniDialog();
     renderLista();
+    //pruebaCaches();
 }
 
 start();
